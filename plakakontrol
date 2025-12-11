@@ -1,24 +1,124 @@
-import re
-from faker import Faker
-import random
-from datetime import datetime
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>T.C. Plaka Kontrol Simülasyonu (JavaScript)</title>
+    <style>
+        /* ========================== */
+        /* TEMEL VE AÇIK TEMA STİLLERİ */
+        /* ========================== */
+        :root {
+            --bg-color: #f0f0f0;
+            --text-color: #333;
+            --terminal-bg: #2e3436;
+            --terminal-text: #d3d7cf;
+            --prompt-color: #729fcf;
+            --info-color: #8ae234;
+            --warning-color: #fcaf3e;
+            --error-color: #ef2929;
+            --cizgi-color: #555753;
+            --input-color: #fff;
+            --button-bg: #ccc;
+            --button-text: #333;
+        }
 
-# Faker kütüphanesini Türkçe dil desteğiyle başlatalım
-fake = Faker('tr_TR')
+        /* ========================== */
+        /* KOYU TEMA STİLLERİ */
+        /* ========================== */
+        body.dark-theme {
+            --bg-color: #1e1e1e;
+            --text-color: #e0e0e0;
+            --terminal-bg: #0d1117; /* GitHub Dark Theme Terminali */
+            --terminal-text: #c9d1d9;
+            --prompt-color: #58a6ff;
+            --info-color: #56d364;
+            --warning-color: #d29922;
+            --error-color: #f85149;
+            --cizgi-color: #484f58;
+            --input-color: #e0e0e0;
+            --button-bg: #21262d;
+            --button-text: #c9d1d9;
+        }
+        
+        /* Tema değişkenlerini uygulama */
+        body { 
+            font-family: 'Consolas', monospace; 
+            padding: 20px; 
+            transition: background-color 0.3s, color 0.3s;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        
+        .terminal { 
+            background-color: var(--terminal-bg); 
+            color: var(--terminal-text); 
+            border-radius: 8px; 
+            padding: 15px; 
+            min-height: 500px; 
+            overflow-y: auto; 
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); 
+        }
+        .prompt-area { display: flex; margin-top: 10px; }
+        .prompt { color: var(--prompt-color); margin-right: 5px; }
+        #userInput { 
+            flex-grow: 1; 
+            background: none; 
+            border: none; 
+            color: var(--input-color); 
+            font-family: inherit; 
+            font-size: 1em; 
+            outline: none; 
+        }
+        .output-line { margin: 0; white-space: pre-wrap; }
+        
+        /* Renk Sınıfları */
+        .info { color: var(--info-color); }
+        .warning { color: var(--warning-color); }
+        .error { color: var(--error-color); }
+        .hata-cizgi { color: var(--cizgi-color); }
+        
+        /* Markdown'dan gelen bold ve emoji stilleri */
+        .output-line strong { font-weight: bold; color: var(--terminal-text); }
+        .output-line span.emoji-bullet { color: var(--warning-color); } 
 
+        /* TEMA BUTONU STİLLERİ */
+        #theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s, color 0.3s;
+            background-color: var(--button-bg);
+            color: var(--button-text);
+        }
+    </style>
+</head>
+<body>
 
-class PlakaKontrol:
-    """
-    T.C. plaka formatını kontrol eden, şehir, tip bilgisi veren ve detaylı simülasyon verisi üreten sınıf.
-    """
+    <button id="theme-toggle">🌙 Koyu Tema</button>
 
-    # --- REGEX KALIPLARI ---
-    IL_KODU_REGEX = r"(0[1-9]|[1-7]\d|8[0-1])"
-    SIVIL_REGEX = r"^" + IL_KODU_REGEX + r"([A-Z]{1,3})(\d{1,4})$"
-    TURK_PLAKA_REGEX = SIVIL_REGEX
+<div class="terminal" id="terminal">
+    <p class="output-line info">>>> T.C. PLAKA KONTROL SİSTEMİ (v6.0 - JavaScript Simülasyon)</p>
+    <div class="prompt-area">
+        <span class="prompt" id="promptDisplay">PLAKA GİRİŞİ ></span>
+        <input type="text" id="userInput" autofocus onkeydown="handleInput(event)">
+    </div>
+</div>
 
-    # 81 İLİN KOD - İSİM EŞLEŞMESİ
-    IL_KODLARI = {
+<script>
+// =======================================================
+// JS PLAKA KONTROL SINIFI (Değişiklik yapılmadı)
+// =======================================================
+class PlakaKontrol {
+    static IL_KODU_REGEX = "(0[1-9]|[1-7]\\d|8[0-1])";
+    static SIVIL_REGEX = new RegExp("^" + PlakaKontrol.IL_KODU_REGEX + "([A-Z]{1,3})(\\d{1,4})$");
+
+    static IL_KODLARI = {
         "01": "Adana", "02": "Adıyaman", "03": "Afyonkarahisar", "04": "Ağrı", "05": "Amasya",
         "06": "Ankara", "07": "Antalya", "08": "Artvin", "09": "Aydın", "10": "Balıkesir",
         "11": "Bilecik", "12": "Bingöl", "13": "Bitlis", "14": "Bolu", "15": "Burdur",
@@ -36,250 +136,376 @@ class PlakaKontrol:
         "71": "Kırıkkale", "72": "Batman", "73": "Şırnak", "74": "Bartın", "75": "Ardahan",
         "76": "Iğdır", "77": "Yalova", "78": "Karabük", "79": "Kilis", "80": "Osmaniye",
         "81": "Düzce"
+    };
+    
+    constructor(plaka) {
+        this.orijinalPlaka = plaka;
+        this.temizlenmisPlaka = this._plakayiTemizle(plaka);
+        this.hataMesaji = "";
+        this.plakaTipi = "Tanımlanamadı";
+        this.gecerli = false;
+        this.simuleVeri = {};
+        this.ilKodu = null;
+        this.eslesme = null;
     }
 
-    def __init__(self, plaka: str):
-        self.orijinal_plaka = plaka
-        self.temizlenmis_plaka = self._plakayi_temizle(plaka)
-        self.hata_mesaji = ""
-        self.plaka_tipi = "Tanımlanamadı"
-        self.gecerli = False
-        self.simule_veri = {}  # Rastgele üretilen veriyi burada tutacağız
+    _plakayiTemizle(plaka) {
+        return plaka.trim().toUpperCase().replace(/\s/g, "");
+    }
 
-    def _plakayi_temizle(self, plaka: str) -> str:
-        return plaka.strip().upper().replace(" ", "")
+    _rastgeleKullaniciUret() {
+        const isimler = ["Ayşe Yılmaz", "Ahmet Kaya", "Fatma Demir", "Mehmet Öztürk", "Zeynep Çelik"];
+        const markalar = ["Toyota", "Renault", "Fiat", "Ford", "Volkswagen", "BMW", "Mercedes"];
+        const durumlar = ["Geçerli", "Süresi Dolmuş"];
+        const sehirler = Object.values(PlakaKontrol.IL_KODLARI);
+        
+        const randomNum = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+        const formatTL = (sayi) => sayi.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY', minimumFractionDigits: 2 });
+        const rastgeleTarih = () => {
+            const yil = randomNum(1955, 2000);
+            const ay = randomNum(1, 12).toString().padStart(2, '0');
+            const gun = randomNum(1, 28).toString().padStart(2, '0');
+            return `${gun}.${ay}.${yil}`;
+        };
 
-    def gecerli_mi(self) -> bool:
-        """Plaka formatının geçerli olup olmadığını kontrol eder ve hata/tip mesajlarını günceller."""
-        plaka = self.temizlenmis_plaka
+        const trafikBorcu = Math.random() < 0.5 ? "Yok" : formatTL(randomNum(100, 3000));
+        const bankaBakiyesi = formatTL(randomNum(10000, 5000000));
+        const telefonNo = `(5${randomNum(10, 99)}) ${randomNum(100, 999)} ${randomNum(10, 99)} ${randomNum(10, 99)}`;
 
-        if not re.match(r"^[A-Z0-9]+$", plaka):
-            self.hata_mesaji = "Plaka dizesinde sadece harf (A-Z) ve rakam (0-9) kullanılmalıdır."
-            self.gecerli = False
-            return False
+        this.simuleVeri = {
+            "Ruhsat Sahibi": isimler[randomNum(0, isimler.length - 1)],
+            "TC Kimlik No": "xxxxxxxxxxx",
+            "Telefon Numarası": telefonNo,
+            "Marka / Model": `${markalar[randomNum(0, markalar.length - 1)]} Serisi ${randomNum(100, 999)}`,
+            "Ruhsat Sahibi İl": sehirler[randomNum(0, sehirler.length - 1)],
+            "Muayene Geçerlilik": durumlar[randomNum(0, 1)],
+            "Sigorta Durumu": durumlar[randomNum(0, 1)],
+            "Trafik Cezası Borcu": trafikBorcu,
+            "Dogum Tarihi": rastgeleTarih(),
+            "Dogum Yeri": sehirler[randomNum(0, sehirler.length - 1)],
+            "Kütük İl/İlçe": `${sehirler[randomNum(0, sehirler.length - 1)]}/${sehirler[randomNum(0, sehirler.length - 1)]}`,
+            "Ikametgah Adresi": `${sehirler[randomNum(0, sehirler.length - 1)]} Merkez Mah. No: ${randomNum(1, 100)}`,
+            "Banka Hesabi Bakiyesi": bankaBakiyesi
+        };
+        return this.simuleVeri;
+    }
 
-        match = re.match(self.TURK_PLAKA_REGEX, plaka)
+    gecerliMi() {
+        const plaka = this.temizlenmisPlaka;
 
-        if match:
-            self.gecerli = True
-            self.plaka_tipi = "Sivil Standart Plaka"  # Basit tutmak için sadece sivil kontrolü
-            return True
-        else:
-            il_kodu_str = plaka[:2]
-            if not re.match(r"^[0-9]{2}$", il_kodu_str) or il_kodu_str not in self.IL_KODLARI:
-                self.hata_mesaji = f"İlk iki karakter ya sayı değil ya da T.C. plaka kodları aralığında (01-81) değildir."
-            elif len(plaka) < 4 or len(plaka) > 9:
-                self.hata_mesaji = f"Plaka uzunluğu hatalı. ({len(plaka)} karakter). Geçerli uzunluk 4-9 karakterdir."
-            else:
-                self.hata_mesaji = "Plaka gruplarının uzunlukları (Harf: 1-3, Rakam: 1-4) veya sıralaması hatalıdır."
-
-            self.gecerli = False
-            return False
-
-    def _getir_sehir_adi(self, il_kodu: str) -> str:
-        return self.IL_KODLARI.get(il_kodu, "BİLİNMEYEN İL KODU")
-
-    def _rastgele_kullanici_uret(self):
-        """Faker kullanarak detaylı rastgele kullanıcı ve araç bilgileri üretir."""
-
-        # Detaylı simülasyon verileri
-        ilk_dogum_tarihi = fake.date_of_birth(minimum_age=25, maximum_age=70)
-        ikamet_ili = fake.city()
-        banka_parasi = random.randint(1000, 5000000)
-
-        # Ana simülasyon verileri
-        marka = random.choice(["Toyota", "Renault", "Fiat", "Ford", "Volkswagen", "BMW", "Mercedes"])
-
-        simule_veri = {
-            "Ruhsat Sahibi": fake.name(),
-            "TC Kimlik No": fake.unique.random_number(digits=11),
-            "Telefon Numarası": fake.phone_number(),  # Yeni Eklenen Alan
-            "Marka / Model": f"{marka} {fake.word().capitalize()} {str(random.randint(100, 999))}",
-            "Ruhsat Sahibi İl": ikamet_ili,
-            "Muayene Geçerlilik": random.choice(["Geçerli", "Süresi Dolmuş"]),
-            "Sigorta Durumu": random.choice(["Geçerli", "Süresi Dolmuş"]),
-            "Trafik Cezası Borcu": f"{random.randint(0, 3000):,} TL" if random.choice([True, False]) else "Yok",
-            # Ayrıntılı Bilgiler (Araştır komutu için)
-            "Dogum Tarihi": ilk_dogum_tarihi.strftime('%d.%m.%Y'),
-            "Dogum Yeri": fake.city(),
-            "Kütük İl/İlçe": f"{fake.city()}/{fake.city()}",
-            "Ikametgah Adresi": fake.address(),
-            "Banka Hesabi Bakiyesi": f"{banka_parasi:,.2f} TL"
+        if (!/^[A-Z0-9]+$/.test(plaka)) {
+            this.hataMesaji = "Plaka dizesinde sadece harf (A-Z) ve rakam (0-9) kullanılmalıdır.";
+            this.gecerli = false;
+            return false;
         }
-        self.simule_veri = simule_veri
-        return simule_veri
 
-    def raporu_olustur(self) -> str:
-        """Kısa kontrol raporunu oluşturur."""
+        this.eslesme = plaka.match(PlakaKontrol.SIVIL_REGEX);
 
-        self.gecerli_mi()
-        cizgi = "=" * 70
-        ayirici = "-" * 70
+        if (this.eslesme) {
+            this.gecerli = true;
+            this.plakaTipi = "Sivil Standart Plaka";
+            this.ilKodu = this.eslesme[1];
+            return true;
+        } else {
+            const ilKoduStr = plaka.substring(0, 2);
+            if (!/^[0-9]{2}$/.test(ilKoduStr) || !PlakaKontrol.IL_KODLARI[ilKoduStr]) {
+                this.hataMesaji = `İlk iki karakter ya sayı değil ya da T.C. plaka kodları aralığında (01-81) değildir.`;
+            } else if (plaka.length < 4 || plaka.length > 9) {
+                this.hataMesaji = `Plaka uzunluğu hatalı. (${plaka.length} karakter). Geçerli uzunluk 4-9 karakterdir.`;
+            } else {
+                this.hataMesaji = "Plaka gruplarının uzunlukları (Harf: 1-3, Rakam: 1-4) veya sıralaması hatalıdır.";
+            }
 
-        rapor = f"\n{cizgi}\n"
-        rapor += f"| PLAKA KONTROL SONUCU: {self.orijinal_plaka}\n"
-        rapor += f"{cizgi}\n"
+            this.gecerli = false;
+            return false;
+        }
+    }
 
-        sonuc_mesaji = "**✅ GEÇERLİ PLAKA FORMATI**" if self.gecerli else "**❌ GEÇERSİZ PLAKA FORMATI**"
+    getirSehirAdi(ilKodu) {
+        return PlakaKontrol.IL_KODLARI[ilKodu] || "BİLİNMEYEN İL KODU";
+    }
 
-        rapor += f"Format Kontrolü: {sonuc_mesaji}\n"
-        rapor += f"Temiz Plaka:     {self.temizlenmis_plaka}\n"
-        rapor += ayirici + "\n"
+    raporuOlustur() {
+        this.gecerliMi();
+        const cizgi = "=".repeat(70);
+        const ayirici = "-".repeat(70);
+        
+        let rapor = `\n${cizgi}\n`;
+        rapor += `| PLAKA KONTROL SONUCU: ${this.orijinalPlaka}\n`;
+        rapor += `${cizgi}\n`;
 
-        if not self.gecerli:
-            rapor += f"⚠️ NEDEN GEÇERSİZ: {self.hata_mesaji}\n"
-            rapor += ayirici + "\n"
-            return rapor
+        const sonucMesaji = this.gecerli ? "**✅ GEÇERLİ PLAKA FORMATI**" : "**❌ GEÇERSİZ PLAKA FORMATI**";
 
-        # Plaka geçerliyse
-        match = re.match(self.TURK_PLAKA_REGEX, self.temizlenmis_plaka)
-        il_kodu = match.group(1)
-        sehir_adi = self._getir_sehir_adi(il_kodu)
+        rapor += `Format Kontrolü: ${sonucMesaji}\n`;
+        rapor += `Temiz Plaka:     ${this.temizlenmisPlaka}\n`;
+        rapor += ayirici + "\n";
 
-        # Simülasyon verisini üret ve sakla
-        kullanici_bilgileri = self._rastgele_kullanici_uret()
+        if (!this.gecerli) {
+            rapor += `⚠️ NEDEN GEÇERSİZ: ${this.hataMesaji}\n`;
+            rapor += ayirici + "\n";
+            return rapor;
+        }
 
-        rapor += "🔢 AYRIŞTIRILMIŞ PLAKA VE KISA SİMÜLASYON BİLGİLERİ\n"
-        rapor += f"  - **Şehir Adı**:    {sehir_adi}\n"
-        rapor += f"  - **Plaka Tipi**:   {self.plaka_tipi}\n"
-        rapor += f"  - **Ruhsat Sahibi**: {kullanici_bilgileri.get('Ruhsat Sahibi')}\n"
-        rapor += f"  - **Telefon No**:    {kullanici_bilgileri.get('Telefon Numarası')}\n"
-        rapor += f"  - **Borç Durumu**:   {kullanici_bilgileri.get('Trafik Cezası Borcu')}\n"
-        rapor += f"{ayirici}\n"
+        const sehirAdi = this.getirSehirAdi(this.ilKodu);
+        const kullaniciBilgileri = this._rastgeleKullaniciUret();
 
-        rapor += "💡 DEVAM ETMEK İÇİN KOMUT GİRİN:\n"
-        rapor += "  - **`/araştir`**: Detaylı ruhsat sahibi ve araç bilgilerini açar.\n"
-        rapor += "  - **`/bilgilendirme`**: Simülasyon eylemleri (SMS, E-posta) menüsünü açar.\n"
-        rapor += "  - **`yeni`**: Yeni plaka kontrolü başlatır.\n"
-        rapor += f"{ayirici}\n"
+        rapor += "🔢 AYRIŞTIRILMIŞ PLAKA VE KISA SİMÜLASYON BİLGİLERİ\n";
+        rapor += `  - **Şehir Adı**:    ${sehirAdi}\n`;
+        rapor += `  - **Plaka Tipi**:   ${this.plakaTipi}\n`;
+        rapor += `  - **Ruhsat Sahibi**: ${kullaniciBilgileri["Ruhsat Sahibi"]}\n`;
+        rapor += `  - **Telefon No**:    ${kullaniciBilgileri["Telefon Numarası"]}\n`;
+        rapor += `  - **Borç Durumu**:   ${kullaniciBilgileri["Trafik Cezası Borcu"]}\n`;
+        rapor += `${ayirici}\n`;
 
-        return rapor
+        rapor += "💡 DEVAM ETMEK İÇİN KOMUT GİRİN:\n";
+        rapor += "  - **`/araştir`**: Detaylı ruhsat sahibi ve araç bilgilerini açar.\n";
+        rapor += "  - **`/bilgilendirme`**: Simülasyon eylemleri (SMS, E-posta) menüsünü açar.\n";
+        raapor += "  - **`yeni`**: Yeni plaka kontrolü başlatır.\n";
+        rapor += `${ayirici}\n`;
 
-
-# --- ANA PROGRAM VE KOMUT İŞLEYİCİLER ---
-
-def goster_arastir_menusu(plaka_kontrol_nesnesi):
-    """/araştir komutu altındaki detaylı bilgileri gösterir."""
-    veri = plaka_kontrol_nesnesi.simule_veri
-
-    print("\n" + "=" * 70)
-    print("| 🕵️ DETAYLI RUHSAT SAHİBİ VE ÖZEL BİLGİLER (SİMÜLASYON) ")
-    print("=" * 70)
-
-    print("  - **Ruhsat Sahibi Adı**:    " + veri.get("Ruhsat Sahibi"))
-    print("  - **TC Kimlik No**:         " + str(veri.get("TC Kimlik No")))
-    print("  - **Doğum Tarihi**:         " + veri.get("Dogum Tarihi"))
-    print("  - **Doğum Yeri**:           " + veri.get("Dogum Yeri"))
-    print("  - **Kütük İl/İlçe**:        " + veri.get("Kütük İl/İlçe"))
-    print("  - **İkametgah Adresi**:     " + veri.get("Ikametgah Adresi"))
-    print("  - **Marka / Model**:        " + veri.get("Marka / Model"))
-    print("  - **Banka Hesabı Bakiyesi**: " + veri.get("Banka Hesabi Bakiyesi"))  # En hassas kısım!
-
-    print("\n⚠️ YUKARIDAKİ TÜM BİLGİLER BİR YAZILIM TARAFINDAN RASGELE ÜRETİLMİŞTİR VE GERÇEK DEĞİLDİR.")
-    print("=" * 70)
+        return rapor;
+    }
+}
+// --- JS PLAKA KONTROL SINIFI SONU ---
 
 
-def goster_bilgilendirme_menusu():
-    """/bilgilendirme komutu altındaki seçenekleri gösterir."""
-    print("\n" + "=" * 70)
-    print("| 📞 BİLGİLENDİRME VE EYLEM SİMÜLASYONU MENÜSÜ ")
-    print("=" * 70)
-    print("  - **`/sms`**: Borç durumu ile ilgili kısa mesaj gönderimini simüle eder.")
-    print("  - **`/eposta`**: Sigorta yenileme uyarısı e-postası gönderimini simüle eder.")
-    print("  - **`geri`**: Ana menüye döner.")
-    print("=" * 70)
+let currentPlakaNesnesi = null;
+let aktifMod = "ANA";
+const terminalDiv = document.getElementById('terminal');
+const userInput = document.getElementById('userInput');
+const promptDisplay = document.getElementById('promptDisplay');
+
+// ****** DÜZELTİLMİŞ HATA GİDERİCİ FONKSİYON ******
+function appendOutput(text, className = '') {
+    // Çıktıyı satır satır bölmek
+    const lines = text.split('\n');
+    
+    // Geçerli plaka nesnesi varsa, çıktı rengini belirleme
+    const baseClass = currentPlakaNesnesi && currentPlakaNesnesi.gecerli ? 'info' : className;
+
+    lines.forEach(line => {
+        const p = document.createElement('p');
+        p.className = 'output-line'; // Başlangıçta temel sınıfı ver
+
+        let formattedLine = line
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); // HTML'e kaçış
+
+        // Çizgileri ve Ayırıcıları Temiz Biçimde HTML'e Dönüştürme
+        if (line.match(/^=+$/) || line.match(/^-+$/)) {
+             // Sadece eşittir veya tirelerden oluşan çizgileri algıla
+             formattedLine = line.replace(/=/g, '—').replace(/-/g, '—');
+             p.className = 'output-line hata-cizgi'; // Çizgi ve Ayırıcılar için özel stil
+        } else {
+            // Markdown'dan gelen bold ve emoji stillerini HTML'e çevirme
+            formattedLine = formattedLine
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // **Bold** işaretlerini <strong>'a çevir
+
+                // Emoji Biçimlendirmesi
+                .replace(/⚠️/g, '<span class="warning">⚠️</span>')
+                .replace(/✅/g, '<span class="info">✅</span>')
+                .replace(/❌/g, '<span class="error">❌</span>')
+                .replace(/🕵️/g, '<span class="info">🕵️</span>')
+                .replace(/📞/g, '<span class="info">📞</span>')
+                .replace(/🔢/g, '<span class="info">🔢</span>')
+                .replace(/💡/g, '<span class="info">💡</span>');
+                
+            // Boşlukları korumak için satır başındaki birden fazla boşluğu &nbsp; ile değiştirme
+            formattedLine = formattedLine.replace(/^ /, '&nbsp;').replace(/ {2}/g, '&nbsp;&nbsp;');
+            
+            // Eğer çizgi değilse, rengi belirle
+            if (p.className !== 'output-line hata-cizgi') {
+                p.className = 'output-line ' + (line.includes("GEÇERSİZ") ? 'error' : baseClass);
+            }
+        }
+        
+        p.innerHTML = formattedLine.trim().length > 0 ? formattedLine : '&nbsp;'; 
+        terminalDiv.insertBefore(p, terminalDiv.lastElementChild);
+    });
+    terminalDiv.scrollTop = terminalDiv.scrollHeight; // En alta kaydır
+}
+// **********************************************
 
 
-def isleyici_bilgilendirme(plaka_kontrol_nesnesi, alt_komut):
-    """/bilgilendirme altındaki komutları işler."""
-    veri = plaka_kontrol_nesnesi.simule_veri
+function updatePrompt() {
+    if (currentPlakaNesnesi === null) {
+        promptDisplay.textContent = "PLAKA GİRİŞİ >";
+    } else {
+        promptDisplay.textContent = `KOMUT (${aktifMod}) >`;
+    }
+}
 
-    if alt_komut == "/sms":
-        print("\n" + "*" * 70)
-        print(f"SMS GÖNDERİMİ SİMÜLE EDİLİYOR...")
-        print(f"ALICI: {veri.get('Telefon Numarası')}")
-        print(
-            f"MESAJ: Sayın {veri.get('Ruhsat Sahibi')}, {plaka_kontrol_nesnesi.orijinal_plaka} plakalı aracınızın Trafik Cezası Borcu: {veri.get('Trafik Cezası Borcu')}.")
-        print(f"Durum: BAŞARILI. (Bu bir simülasyondur.)")
-        print("*" * 70)
-    elif alt_komut == "/eposta":
-        print("\n" + "*" * 70)
-        print(f"E-POSTA GÖNDERİMİ SİMÜLE EDİLİYOR...")
-        print(f"ALICI: {veri.get('Ruhsat Sahibi')} için rastgele bir e-posta adresi.")
-        print(f"KONU: Sigorta Süresi Yaklaşıyor!")
-        print(
-            f"MESAJ: {plaka_kontrol_nesnesi.orijinal_plaka} plakalı aracınızın Zorunlu Sigorta durumu: {veri.get('Sigorta Durumu')}. Sürenizi kontrol edin.")
-        print(f"Durum: BAŞARILI. (Bu bir simülasyondur.)")
-        print("*" * 70)
-    else:
-        print("Bilinmeyen alt komut. Lütfen `/sms`, `/eposta` veya `geri` yazın.")
-        goster_bilgilendirme_menusu()
+function gosterArastirMenusu(nesne) {
+    const veri = nesne.simuleVeri;
+    let output = "\n" + "=".repeat(70) + "\n";
+    output += "| 🕵️ DETAYLI RUHSAT SAHİBİ VE ÖZEL BİLGİLER (SİMÜLASYON) \n";
+    output += "=".repeat(70) + "\n";
+    output += `  - **Ruhsat Sahibi Adı**:    ${veri["Ruhsat Sahibi"]}\n`;
+    output += `  - **TC Kimlik No**:         ${veri["TC Kimlik No"]}\n`;
+    output += `  - **Doğum Tarihi**:         ${veri["Dogum Tarihi"]}\n`;
+    output += `  - **Doğum Yeri**:           ${veri["Dogum Yeri"]}\n`;
+    output += `  - **Kütük İl/İlçe**:        ${veri["Kütük İl/İlçe"]}\n`;
+    output += `  - **İkametgah Adresi**:     ${veri["Ikametgah Adresi"]}\n`;
+    output += `  - **Marka / Model**:        ${veri["Marka / Model"]}\n`;
+    output += `  - **Banka Hesabı Bakiyesi**: ${veri["Banka Hesabi Bakiyesi"]}\n`;
+    output += "\n⚠️ YUKARIDAKİ TÜM BİLGİLER BİR YAZILIM TARAFINDAN RASGELE ÜRETİLMİŞTİR VE GERÇEK DEĞİLDİR.\n";
+    output += "=".repeat(70);
+    appendOutput(output);
+}
 
+function gosterBilgilendirmeMenusu() {
+    let output = "\n" + "=".repeat(70) + "\n";
+    output += "| 📞 BİLGİLENDİRME VE EYLEM SİMÜLASYONU MENÜSÜ \n";
+    output += "=".repeat(70) + "\n";
+    output += "  - **`/sms`**: Borç durumu ile ilgili kısa mesaj gönderimini simüle eder.\n";
+    output += "  - **`/eposta`**: Sigorta yenileme uyarısı e-postası gönderimini simüle eder.\n";
+    output += "  - **`geri`**: Ana menüye döner.\n";
+    output += "=".repeat(70);
+    appendOutput(output);
+}
 
-def main():
-    """Ana interaktif döngüyü ve komut işleyicisini yönetir."""
-    print("\n>>> T.C. PLAKA KONTROL SİSTEMİ (v6.0 - İnteraktif Simülasyon)")
+function isleyiciBilgilendirme(nesne, altKomut) {
+    const veri = nesne.simuleVeri;
+    let output = "\n" + "*".repeat(70) + "\n";
 
-    current_plaka_nesnesi = None
-    aktif_mod = "ANA"  # ANA, BILGILENDIRME
+    if (altKomut === "/sms") {
+        output += `SMS GÖNDERİMİ SİMÜLE EDİLİYOR...\n`;
+        output += `ALICI: ${veri["Telefon Numarası"]}\n`;
+        output += `MESAJ: Sayın ${veri["Ruhsat Sahibi"]}, ${nesne.orijinalPlaka} plakalı aracınızın Trafik Cezası Borcu: ${veri["Trafik Cezası Borcu"]}.\n`;
+        output += `Durum: BAŞARILI. (Bu bir simülasyondur.)\n`;
+    } else if (altKomut === "/eposta") {
+        output += `E-POSTA GÖNDERİMİ SİMÜLE EDİLİYOR...\n`;
+        output += `ALICI: ${veri["Ruhsat Sahibi"]} için rastgele bir e-posta adresi.\n`;
+        output += `KONU: Sigorta Süresi Yaklaşıyor!\n`;
+        output += `MESAJ: ${nesne.orijinalPlaka} plakalı aracınızın Zorunlu Sigorta durumu: ${veri["Sigorta Durumu"]}. Sürenizi kontrol edin.\n`;
+        output += `Durum: BAŞARILI. (Bu bir simülasyondur.)\n`;
+    } else {
+        appendOutput("Bilinmeyen alt komut. Lütfen `/sms`, `/eposta` veya `geri` yazın.", 'error');
+        gosterBilgilendirmeMenusu();
+        return;
+    }
+    output += "*".repeat(70);
+    appendOutput(output, 'info');
+}
 
-    while True:
-        prompt = "PLAKA GİRİŞİ > " if current_plaka_nesnesi is None else f"KOMUT ({aktif_mod}) > "
+function handleInput(event) {
+    if (event.key === 'Enter') {
+        const giris = userInput.value.trim();
+        userInput.value = '';
 
-        try:
-            giris = input(prompt).strip()
-            if not giris:
-                continue
+        if (giris === '') {
+            return;
+        }
 
-            giris_lower = giris.lower()
+        // Kullanıcının girdiği komutu çıktıya ekle
+        appendOutput(`${promptDisplay.textContent} ${giris}`, 'prompt');
+        const girisLower = giris.toLowerCase();
 
-            if giris_lower in ('q', 'exit'):
-                print("Program sonlandırılıyor. İyi günler!")
-                break
+        if (girisLower === 'q' || girisLower === 'exit') {
+            appendOutput("Program sonlandırılıyor. İyi günler!", 'info');
+            userInput.disabled = true;
+            promptDisplay.textContent = "PROGRAM SONLANDI";
+            return;
+        }
 
-            # --- ANA MOD İŞLEME ---
-            if current_plaka_nesnesi is None or giris_lower == 'yeni':
-                # Yeni plaka girişi veya 'yeni' komutu
-                if giris_lower == 'yeni':
-                    print("\n[INFO] Yeni plaka kontrolü başlatılıyor.")
+        try {
+            // --- ANA MOD İŞLEME ---
+            if (currentPlakaNesnesi === null || girisLower === 'yeni' || currentPlakaNesnesi.gecerli === false) {
+                if (girisLower === 'yeni' && currentPlakaNesnesi !== null) {
+                    appendOutput("\n[INFO] Yeni plaka kontrolü başlatılıyor.", 'info');
+                }
+                
+                const plakaToControl = (girisLower === 'yeni' && currentPlakaNesnesi !== null) ? '' : giris;
+                
+                // Yeni plaka girişi sadece 'yeni' komutuyla değil, geçersiz girişte de devreye girer.
+                if (plakaToControl.length > 0) {
+                    const kontrolNesnesi = new PlakaKontrol(plakaToControl);
+                    const rapor = kontrolNesnesi.raporuOlustur();
+                    appendOutput(rapor);
 
-                kontrol_nesnesi = PlakaKontrol(giris)
-                rapor = kontrol_nesnesi.raporu_olustur()
-                print(rapor)
+                    if (kontrolNesnesi.gecerli) {
+                        currentPlakaNesnesi = kontrolNesnesi;
+                        aktifMod = "ANA";
+                    } else {
+                        currentPlakaNesnesi = null;
+                        aktifMod = "ANA";
+                    }
+                } else if (girisLower === 'yeni' && currentPlakaNesnesi !== null) {
+                    currentPlakaNesnesi = null; // Yeni giriş bekleniyor
+                } else {
+                    appendOutput("Lütfen kontrol etmek istediğiniz plakayı girin.", 'warning');
+                }
+                
+            } 
+            // --- KOMUT MODU İŞLEME (Plaka geçerliyse) ---
+            else if (currentPlakaNesnesi !== null) {
+                if (aktifMod === "ANA") {
+                    if (girisLower === "/araştir") {
+                        gosterArastirMenusu(currentPlakaNesnesi);
+                    } else if (girisLower === "/bilgilendirme") {
+                        gosterBilgilendirmeMenusu();
+                        aktifMod = "BILGILENDIRME";
+                    } else if (girisLower === "yeni") {
+                        currentPlakaNesnesi = null; 
+                    } else {
+                        appendOutput("Bilinmeyen komut. Lütfen `/araştir`, `/bilgilendirme` veya `yeni` yazın.", 'error');
+                    }
 
-                if kontrol_nesnesi.gecerli:
-                    current_plaka_nesnesi = kontrol_nesnesi
-                    aktif_mod = "ANA"
-                else:
-                    current_plaka_nesnesi = None
-                    aktif_mod = "ANA"
+                } else if (aktifMod === "BILGILENDIRME") {
+                    if (girisLower === "geri") {
+                        aktifMod = "ANA";
+                        appendOutput("Ana komut menüsüne dönüldü.\nMevcut komutlar: /araştir, /bilgilendirme, yeni", 'info');
+                    } else {
+                        isleyiciBilgilendirme(currentPlakaNesnesi, girisLower);
+                    }
+                }
+            }
+        } catch (e) {
+            appendOutput(`Beklenmedik bir hata oluştu: ${e.message}`, 'error');
+        }
 
-            # --- KOMUT MODU İŞLEME (Plaka geçerliyse) ---
-            elif current_plaka_nesnesi is not None:
-                if aktif_mod == "ANA":
-                    if giris_lower == "/araştir":
-                        goster_arastir_menusu(current_plaka_nesnesi)
-                    elif giris_lower == "/bilgilendirme":
-                        goster_bilgilendirme_menusu()
-                        aktif_mod = "BILGILENDIRME"
-                    elif giris_lower == "yeni":
-                        current_plaka_nesnesi = None  # Döngü başında yeni plaka girişine yönlendirilecek
-                        continue
-                    else:
-                        print("Bilinmeyen komut. Lütfen `/araştir`, `/bilgilendirme` veya `yeni` yazın.")
+        updatePrompt();
+    }
+}
 
-                elif aktif_mod == "BILGILENDIRME":
-                    if giris_lower == "geri":
-                        aktif_mod = "ANA"
-                        print("Ana komut menüsüne dönüldü.")
-                        print("Mevcut komutlar: /araştir, /bilgilendirme, yeni")
-                    else:
-                        isleyici_bilgilendirme(current_plaka_nesnesi, giris_lower)
+// =======================================================
+// TEMA DEĞİŞTİRME MANTIĞI (YENİ EK)
+// =======================================================
 
-        except Exception as e:
-            print(f"Beklenmedik bir hata oluştu: {e}")
-            break
+const themeToggle = document.getElementById('theme-toggle');
+const body = document.body;
+const themeKey = 'plaka-kontrol-theme'; // Yerel depolama anahtarı
 
+// 1. Kaydedilmiş temayı yükle
+function loadTheme() {
+    const savedTheme = localStorage.getItem(themeKey) || 'dark'; // Varsayılan olarak koyu tema yapalım
+    setTheme(savedTheme);
+}
 
-if __name__ == "__main__":
-    main()
+// 2. Temayı ayarla ve yerel depolamaya kaydet
+function setTheme(theme) {
+    if (theme === 'dark') {
+        body.classList.add('dark-theme');
+        themeToggle.innerHTML = '☀️ Açık Tema';
+        localStorage.setItem(themeKey, 'dark');
+    } else {
+        body.classList.remove('dark-theme');
+        themeToggle.innerHTML = '🌙 Koyu Tema';
+        localStorage.setItem(themeKey, 'light');
+    }
+}
+
+// 3. Buton tıklama işlevi
+themeToggle.addEventListener('click', () => {
+    // Şu anki temayı kontrol et
+    const currentTheme = body.classList.contains('dark-theme') ? 'dark' : 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+});
+
+// Sayfa yüklendiğinde temayı yükle
+window.addEventListener('load', loadTheme);
+
+</script>
+
+</body>
+</html>
