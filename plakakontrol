@@ -1,0 +1,285 @@
+import re
+from faker import Faker
+import random
+from datetime import datetime
+
+# Faker kütüphanesini Türkçe dil desteğiyle başlatalım
+fake = Faker('tr_TR')
+
+
+class PlakaKontrol:
+    """
+    T.C. plaka formatını kontrol eden, şehir, tip bilgisi veren ve detaylı simülasyon verisi üreten sınıf.
+    """
+
+    # --- REGEX KALIPLARI ---
+    IL_KODU_REGEX = r"(0[1-9]|[1-7]\d|8[0-1])"
+    SIVIL_REGEX = r"^" + IL_KODU_REGEX + r"([A-Z]{1,3})(\d{1,4})$"
+    TURK_PLAKA_REGEX = SIVIL_REGEX
+
+    # 81 İLİN KOD - İSİM EŞLEŞMESİ
+    IL_KODLARI = {
+        "01": "Adana", "02": "Adıyaman", "03": "Afyonkarahisar", "04": "Ağrı", "05": "Amasya",
+        "06": "Ankara", "07": "Antalya", "08": "Artvin", "09": "Aydın", "10": "Balıkesir",
+        "11": "Bilecik", "12": "Bingöl", "13": "Bitlis", "14": "Bolu", "15": "Burdur",
+        "16": "Bursa", "17": "Çanakkale", "18": "Çankırı", "19": "Çorum", "20": "Denizli",
+        "21": "Diyarbakır", "22": "Edirne", "23": "Elazığ", "24": "Erzincan", "25": "Erzurum",
+        "26": "Eskişehir", "27": "Gaziantep", "28": "Giresun", "29": "Gümüşhane", "30": "Hakkari",
+        "31": "Hatay", "32": "Isparta", "33": "Mersin", "34": "İstanbul", "35": "İzmir",
+        "36": "Kars", "37": "Kastamonu", "38": "Kayseri", "39": "Kırklareli", "40": "Kırşehir",
+        "41": "Kocaeli", "42": "Konya", "43": "Kütahya", "44": "Malatya", "45": "Manisa",
+        "46": "Kahramanmaraş", "47": "Mardin", "48": "Muğla", "49": "Muş", "50": "Nevşehir",
+        "51": "Niğde", "52": "Ordu", "53": "Rize", "54": "Sakarya", "55": "Samsun",
+        "56": "Siirt", "57": "Sinop", "58": "Sivas", "59": "Tekirdağ", "60": "Tokat",
+        "61": "Trabzon", "62": "Tunceli", "63": "Şanlıurfa", "64": "Uşak", "65": "Van",
+        "66": "Yozgat", "67": "Zonguldak", "68": "Aksaray", "69": "Bayburt", "70": "Karaman",
+        "71": "Kırıkkale", "72": "Batman", "73": "Şırnak", "74": "Bartın", "75": "Ardahan",
+        "76": "Iğdır", "77": "Yalova", "78": "Karabük", "79": "Kilis", "80": "Osmaniye",
+        "81": "Düzce"
+    }
+
+    def __init__(self, plaka: str):
+        self.orijinal_plaka = plaka
+        self.temizlenmis_plaka = self._plakayi_temizle(plaka)
+        self.hata_mesaji = ""
+        self.plaka_tipi = "Tanımlanamadı"
+        self.gecerli = False
+        self.simule_veri = {}  # Rastgele üretilen veriyi burada tutacağız
+
+    def _plakayi_temizle(self, plaka: str) -> str:
+        return plaka.strip().upper().replace(" ", "")
+
+    def gecerli_mi(self) -> bool:
+        """Plaka formatının geçerli olup olmadığını kontrol eder ve hata/tip mesajlarını günceller."""
+        plaka = self.temizlenmis_plaka
+
+        if not re.match(r"^[A-Z0-9]+$", plaka):
+            self.hata_mesaji = "Plaka dizesinde sadece harf (A-Z) ve rakam (0-9) kullanılmalıdır."
+            self.gecerli = False
+            return False
+
+        match = re.match(self.TURK_PLAKA_REGEX, plaka)
+
+        if match:
+            self.gecerli = True
+            self.plaka_tipi = "Sivil Standart Plaka"  # Basit tutmak için sadece sivil kontrolü
+            return True
+        else:
+            il_kodu_str = plaka[:2]
+            if not re.match(r"^[0-9]{2}$", il_kodu_str) or il_kodu_str not in self.IL_KODLARI:
+                self.hata_mesaji = f"İlk iki karakter ya sayı değil ya da T.C. plaka kodları aralığında (01-81) değildir."
+            elif len(plaka) < 4 or len(plaka) > 9:
+                self.hata_mesaji = f"Plaka uzunluğu hatalı. ({len(plaka)} karakter). Geçerli uzunluk 4-9 karakterdir."
+            else:
+                self.hata_mesaji = "Plaka gruplarının uzunlukları (Harf: 1-3, Rakam: 1-4) veya sıralaması hatalıdır."
+
+            self.gecerli = False
+            return False
+
+    def _getir_sehir_adi(self, il_kodu: str) -> str:
+        return self.IL_KODLARI.get(il_kodu, "BİLİNMEYEN İL KODU")
+
+    def _rastgele_kullanici_uret(self):
+        """Faker kullanarak detaylı rastgele kullanıcı ve araç bilgileri üretir."""
+
+        # Detaylı simülasyon verileri
+        ilk_dogum_tarihi = fake.date_of_birth(minimum_age=25, maximum_age=70)
+        ikamet_ili = fake.city()
+        banka_parasi = random.randint(1000, 5000000)
+
+        # Ana simülasyon verileri
+        marka = random.choice(["Toyota", "Renault", "Fiat", "Ford", "Volkswagen", "BMW", "Mercedes"])
+
+        simule_veri = {
+            "Ruhsat Sahibi": fake.name(),
+            "TC Kimlik No": fake.unique.random_number(digits=11),
+            "Telefon Numarası": fake.phone_number(),  # Yeni Eklenen Alan
+            "Marka / Model": f"{marka} {fake.word().capitalize()} {str(random.randint(100, 999))}",
+            "Ruhsat Sahibi İl": ikamet_ili,
+            "Muayene Geçerlilik": random.choice(["Geçerli", "Süresi Dolmuş"]),
+            "Sigorta Durumu": random.choice(["Geçerli", "Süresi Dolmuş"]),
+            "Trafik Cezası Borcu": f"{random.randint(0, 3000):,} TL" if random.choice([True, False]) else "Yok",
+            # Ayrıntılı Bilgiler (Araştır komutu için)
+            "Dogum Tarihi": ilk_dogum_tarihi.strftime('%d.%m.%Y'),
+            "Dogum Yeri": fake.city(),
+            "Kütük İl/İlçe": f"{fake.city()}/{fake.city()}",
+            "Ikametgah Adresi": fake.address(),
+            "Banka Hesabi Bakiyesi": f"{banka_parasi:,.2f} TL"
+        }
+        self.simule_veri = simule_veri
+        return simule_veri
+
+    def raporu_olustur(self) -> str:
+        """Kısa kontrol raporunu oluşturur."""
+
+        self.gecerli_mi()
+        cizgi = "=" * 70
+        ayirici = "-" * 70
+
+        rapor = f"\n{cizgi}\n"
+        rapor += f"| PLAKA KONTROL SONUCU: {self.orijinal_plaka}\n"
+        rapor += f"{cizgi}\n"
+
+        sonuc_mesaji = "**✅ GEÇERLİ PLAKA FORMATI**" if self.gecerli else "**❌ GEÇERSİZ PLAKA FORMATI**"
+
+        rapor += f"Format Kontrolü: {sonuc_mesaji}\n"
+        rapor += f"Temiz Plaka:     {self.temizlenmis_plaka}\n"
+        rapor += ayirici + "\n"
+
+        if not self.gecerli:
+            rapor += f"⚠️ NEDEN GEÇERSİZ: {self.hata_mesaji}\n"
+            rapor += ayirici + "\n"
+            return rapor
+
+        # Plaka geçerliyse
+        match = re.match(self.TURK_PLAKA_REGEX, self.temizlenmis_plaka)
+        il_kodu = match.group(1)
+        sehir_adi = self._getir_sehir_adi(il_kodu)
+
+        # Simülasyon verisini üret ve sakla
+        kullanici_bilgileri = self._rastgele_kullanici_uret()
+
+        rapor += "🔢 AYRIŞTIRILMIŞ PLAKA VE KISA SİMÜLASYON BİLGİLERİ\n"
+        rapor += f"  - **Şehir Adı**:    {sehir_adi}\n"
+        rapor += f"  - **Plaka Tipi**:   {self.plaka_tipi}\n"
+        rapor += f"  - **Ruhsat Sahibi**: {kullanici_bilgileri.get('Ruhsat Sahibi')}\n"
+        rapor += f"  - **Telefon No**:    {kullanici_bilgileri.get('Telefon Numarası')}\n"
+        rapor += f"  - **Borç Durumu**:   {kullanici_bilgileri.get('Trafik Cezası Borcu')}\n"
+        rapor += f"{ayirici}\n"
+
+        rapor += "💡 DEVAM ETMEK İÇİN KOMUT GİRİN:\n"
+        rapor += "  - **`/araştir`**: Detaylı ruhsat sahibi ve araç bilgilerini açar.\n"
+        rapor += "  - **`/bilgilendirme`**: Simülasyon eylemleri (SMS, E-posta) menüsünü açar.\n"
+        rapor += "  - **`yeni`**: Yeni plaka kontrolü başlatır.\n"
+        rapor += f"{ayirici}\n"
+
+        return rapor
+
+
+# --- ANA PROGRAM VE KOMUT İŞLEYİCİLER ---
+
+def goster_arastir_menusu(plaka_kontrol_nesnesi):
+    """/araştir komutu altındaki detaylı bilgileri gösterir."""
+    veri = plaka_kontrol_nesnesi.simule_veri
+
+    print("\n" + "=" * 70)
+    print("| 🕵️ DETAYLI RUHSAT SAHİBİ VE ÖZEL BİLGİLER (SİMÜLASYON) ")
+    print("=" * 70)
+
+    print("  - **Ruhsat Sahibi Adı**:    " + veri.get("Ruhsat Sahibi"))
+    print("  - **TC Kimlik No**:         " + str(veri.get("TC Kimlik No")))
+    print("  - **Doğum Tarihi**:         " + veri.get("Dogum Tarihi"))
+    print("  - **Doğum Yeri**:           " + veri.get("Dogum Yeri"))
+    print("  - **Kütük İl/İlçe**:        " + veri.get("Kütük İl/İlçe"))
+    print("  - **İkametgah Adresi**:     " + veri.get("Ikametgah Adresi"))
+    print("  - **Marka / Model**:        " + veri.get("Marka / Model"))
+    print("  - **Banka Hesabı Bakiyesi**: " + veri.get("Banka Hesabi Bakiyesi"))  # En hassas kısım!
+
+    print("\n⚠️ YUKARIDAKİ TÜM BİLGİLER BİR YAZILIM TARAFINDAN RASGELE ÜRETİLMİŞTİR VE GERÇEK DEĞİLDİR.")
+    print("=" * 70)
+
+
+def goster_bilgilendirme_menusu():
+    """/bilgilendirme komutu altındaki seçenekleri gösterir."""
+    print("\n" + "=" * 70)
+    print("| 📞 BİLGİLENDİRME VE EYLEM SİMÜLASYONU MENÜSÜ ")
+    print("=" * 70)
+    print("  - **`/sms`**: Borç durumu ile ilgili kısa mesaj gönderimini simüle eder.")
+    print("  - **`/eposta`**: Sigorta yenileme uyarısı e-postası gönderimini simüle eder.")
+    print("  - **`geri`**: Ana menüye döner.")
+    print("=" * 70)
+
+
+def isleyici_bilgilendirme(plaka_kontrol_nesnesi, alt_komut):
+    """/bilgilendirme altındaki komutları işler."""
+    veri = plaka_kontrol_nesnesi.simule_veri
+
+    if alt_komut == "/sms":
+        print("\n" + "*" * 70)
+        print(f"SMS GÖNDERİMİ SİMÜLE EDİLİYOR...")
+        print(f"ALICI: {veri.get('Telefon Numarası')}")
+        print(
+            f"MESAJ: Sayın {veri.get('Ruhsat Sahibi')}, {plaka_kontrol_nesnesi.orijinal_plaka} plakalı aracınızın Trafik Cezası Borcu: {veri.get('Trafik Cezası Borcu')}.")
+        print(f"Durum: BAŞARILI. (Bu bir simülasyondur.)")
+        print("*" * 70)
+    elif alt_komut == "/eposta":
+        print("\n" + "*" * 70)
+        print(f"E-POSTA GÖNDERİMİ SİMÜLE EDİLİYOR...")
+        print(f"ALICI: {veri.get('Ruhsat Sahibi')} için rastgele bir e-posta adresi.")
+        print(f"KONU: Sigorta Süresi Yaklaşıyor!")
+        print(
+            f"MESAJ: {plaka_kontrol_nesnesi.orijinal_plaka} plakalı aracınızın Zorunlu Sigorta durumu: {veri.get('Sigorta Durumu')}. Sürenizi kontrol edin.")
+        print(f"Durum: BAŞARILI. (Bu bir simülasyondur.)")
+        print("*" * 70)
+    else:
+        print("Bilinmeyen alt komut. Lütfen `/sms`, `/eposta` veya `geri` yazın.")
+        goster_bilgilendirme_menusu()
+
+
+def main():
+    """Ana interaktif döngüyü ve komut işleyicisini yönetir."""
+    print("\n>>> T.C. PLAKA KONTROL SİSTEMİ (v6.0 - İnteraktif Simülasyon)")
+
+    current_plaka_nesnesi = None
+    aktif_mod = "ANA"  # ANA, BILGILENDIRME
+
+    while True:
+        prompt = "PLAKA GİRİŞİ > " if current_plaka_nesnesi is None else f"KOMUT ({aktif_mod}) > "
+
+        try:
+            giris = input(prompt).strip()
+            if not giris:
+                continue
+
+            giris_lower = giris.lower()
+
+            if giris_lower in ('q', 'exit'):
+                print("Program sonlandırılıyor. İyi günler!")
+                break
+
+            # --- ANA MOD İŞLEME ---
+            if current_plaka_nesnesi is None or giris_lower == 'yeni':
+                # Yeni plaka girişi veya 'yeni' komutu
+                if giris_lower == 'yeni':
+                    print("\n[INFO] Yeni plaka kontrolü başlatılıyor.")
+
+                kontrol_nesnesi = PlakaKontrol(giris)
+                rapor = kontrol_nesnesi.raporu_olustur()
+                print(rapor)
+
+                if kontrol_nesnesi.gecerli:
+                    current_plaka_nesnesi = kontrol_nesnesi
+                    aktif_mod = "ANA"
+                else:
+                    current_plaka_nesnesi = None
+                    aktif_mod = "ANA"
+
+            # --- KOMUT MODU İŞLEME (Plaka geçerliyse) ---
+            elif current_plaka_nesnesi is not None:
+                if aktif_mod == "ANA":
+                    if giris_lower == "/araştir":
+                        goster_arastir_menusu(current_plaka_nesnesi)
+                    elif giris_lower == "/bilgilendirme":
+                        goster_bilgilendirme_menusu()
+                        aktif_mod = "BILGILENDIRME"
+                    elif giris_lower == "yeni":
+                        current_plaka_nesnesi = None  # Döngü başında yeni plaka girişine yönlendirilecek
+                        continue
+                    else:
+                        print("Bilinmeyen komut. Lütfen `/araştir`, `/bilgilendirme` veya `yeni` yazın.")
+
+                elif aktif_mod == "BILGILENDIRME":
+                    if giris_lower == "geri":
+                        aktif_mod = "ANA"
+                        print("Ana komut menüsüne dönüldü.")
+                        print("Mevcut komutlar: /araştir, /bilgilendirme, yeni")
+                    else:
+                        isleyici_bilgilendirme(current_plaka_nesnesi, giris_lower)
+
+        except Exception as e:
+            print(f"Beklenmedik bir hata oluştu: {e}")
+            break
+
+
+if __name__ == "__main__":
+    main()
